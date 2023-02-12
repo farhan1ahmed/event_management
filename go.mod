@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/gin-gonic/gin v1.8.2
 	github.com/joho/godotenv v1.5.0
+	github.com/pkg/errors v0.8.1
 	go.uber.org/zap v1.24.0
 	gorm.io/driver/postgres v1.4.6
 	gorm.io/gorm v1.24.2

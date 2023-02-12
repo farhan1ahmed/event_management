@@ -4,8 +4,9 @@ import "time"
 
 type Event struct {
 	ID                       int       `gorm:"primarykey"`
-	EventTypeID              EventType `gorm:"ForeignKey:ID"`
-	EventName                string    `gorm:"not null"`
+	EventType                EventType `gorm:"ForeignKey:ID"`
+	EventTypeID              int
+	EventName                string `gorm:"not null"`
 	EventDescription         string
 	EventAddress             string
 	EventLocationId          int
@@ -13,10 +14,11 @@ type Event struct {
 	StartTime                *time.Time
 	EndTime                  *time.Time
 	BookingCloseTime         *time.Time
-	EventOrganizerId         EventOrganizer `gorm:"ForeignKey:ID"`
-	IsDeleted                bool           `default:"false"`
-	IsCancelled              bool           `default:"false"`
-	IsSeatManagementRequired bool           `default:"false"`
+	EventOrganizer           EventOrganizer `gorm:"ForeignKey:ID"`
+	EventOrganizerId         int
+	IsDeleted                bool `default:"false"`
+	IsCancelled              bool `default:"false"`
+	IsSeatManagementRequired bool `default:"false"`
 }
 
 type EventType struct {
@@ -33,7 +35,8 @@ type EventOrganizer struct {
 
 type TicketTypes struct {
 	ID                int   `gorm:"primarykey"`
-	EventID           Event `gorm:"ForeignKey:ID"`
+	Event             Event `gorm:"ForeignKey:ID"`
+	EventID           int
 	TicketType        string
 	TotalLimit        int
 	ReservedQuantity  int `default:"0"`
@@ -42,7 +45,8 @@ type TicketTypes struct {
 
 type Ticket struct {
 	ID                 int         `gorm:"primarykey"`
-	TicketTypeID       TicketTypes `gorm:"ForeignKey:ID"`
+	TicketType         TicketTypes `gorm:"ForeignKey:ID"`
+	TicketTypeID       int
 	TicketOwnerContact string
 	IsPaid             bool `default:"false"`
 	IsActive           bool
