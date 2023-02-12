@@ -7,8 +7,11 @@ type Seat struct {
 }
 
 type ReservedSeat struct {
-	ID       int  `gorm:"primarykey"`
-	TicketID Ticket  `gorm:"ForeignKey:ID"`
-	SeatID   Seat `gorm:"ForeignKey:ID"`
-	EventID  Event  `gorm:"ForeignKey:ID"`
+	ID       int    `gorm:"primarykey"`
+	Ticket   Ticket `gorm:"ForeignKey:ID"`
+	Seat     Seat   `gorm:"ForeignKey:ID"`
+	Event    Event  `gorm:"ForeignKey:ID"`
+	TicketID int
+	SeatID   int
+	EventID  int
 }

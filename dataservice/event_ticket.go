@@ -4,6 +4,7 @@ import (
 	"context"
 	"event_ticket_service/models"
 	"fmt"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"log"
 	"time"
@@ -33,7 +34,7 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 		}
 		// Create event
 		event := models.Event{
-			EventTypeID: models.EventType{ID:reqPayload.EventTypeID},
+			EventTypeID: reqPayload.EventTypeID,
 			EventName: reqPayload.EventName,
 			EventAddress: reqPayload.EventAddress,
 			EventDescription: reqPayload.EventDescription,
@@ -41,7 +42,7 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 			StartTime: reqPayload.StartTime,
 			EndTime: reqPayload.EndTime,
 			BookingCloseTime: &bookingCloseTime,
-			EventOrganizerId: eventOrganizer,
+			EventOrganizerId: eventOrganizer.ID,
 			IsDeleted: false,
 			IsCancelled: false,
 			IsSeatManagementRequired: reqPayload.IsSeatManagementRequired,
@@ -57,7 +58,7 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 			TicketType: reqPayload.TicketType,
 			TotalLimit: reqPayload.TotalLimit,
 			RemainingQuantity: reqPayload.TotalLimit,
-			EventID: event,
+			EventID: event.ID,
 		}
 		result = tx.Model(&ticketTypes).Create(&ticketTypes)
 		if result.Error != nil{
@@ -76,7 +77,7 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 
 func (q *Queries)CreateTicketTypeInDB(ctx context.Context, reqPayload models.CreateTicketTypes) error{
 	ticketType := models.TicketTypes{
-		EventID: models.Event{ID: reqPayload.EventID},
+		EventID: reqPayload.EventID,
 		TicketType: reqPayload.TicketType,
 		TotalLimit: reqPayload.TotalLimit,
 		ReservedQuantity: 0,
@@ -125,9 +126,9 @@ func (q *Queries)ReserveTicketInDB(ctx context.Context, reqPayload models.Reserv
 		fmt.Println(event)
 
 		// Create Ticket
-		ticketType.EventID = event
+		ticketType.EventID = event.ID
 		ticket := models.Ticket{
-			TicketTypeID: ticketType,
+			TicketTypeID: ticketType.ID,
 			TicketOwnerContact: reqPayload.TicketOwnerContact,
 			IsPaid: false,
 			IsActive: false,
@@ -145,16 +146,25 @@ func (q *Queries)ReserveTicketInDB(ctx context.Context, reqPayload models.Reserv
 		if event.IsSeatManagementRequired{
 			// Get seat
 			var seat models.Seat
+			var reservedSeat models.ReservedSeat
 			seat.ID = reqPayload.SeatID
+			reservedSeat.SeatID = reqPayload.SeatID
+			// Check if seat not reserved already
+			result = tx.First(&reservedSeat)
+			if result.Error == nil{
+				log.Println(result.Error)
+				return errors.Errorf("seat reserved already")
+			}
+
 			result = tx.First(&seat)
 			if result.Error != nil{
 				log.Println(result.Error)
 				return result.Error
 			}
-			reservedSeat := models.ReservedSeat{
-				TicketID: ticket,
-				EventID: event,
-				SeatID: seat,
+			reservedSeat = models.ReservedSeat{
+				TicketID: ticket.ID,
+				EventID: event.ID,
+				SeatID: seat.ID,
 			}
 			result = tx.Create(&reservedSeat)
 			if result.Error != nil{

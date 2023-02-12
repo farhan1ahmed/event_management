@@ -71,7 +71,7 @@ func (server *Server) reserveTicket(ctx *gin.Context){
 	if err != nil{
 		logger.Error(err.Error())
 		statusCode := http.StatusInternalServerError
-		msg := fmt.Sprintf("failed to reserve ticket for the event", reqPayload.EventID)
+		msg := fmt.Sprintf("failed to reserve ticket for the event %v", reqPayload.EventID)
 		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
 		return
 	}
