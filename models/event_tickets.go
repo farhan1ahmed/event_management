@@ -44,10 +44,11 @@ type TicketTypes struct {
 }
 
 type Ticket struct {
-	ID                 int         `gorm:"primarykey"`
-	TicketType         TicketTypes `gorm:"ForeignKey:ID"`
-	TicketTypeID       int
-	TicketOwnerContact string
-	IsPaid             bool `default:"false"`
-	IsActive           bool
+	ID            int         `gorm:"primarykey"`
+	TicketType    TicketTypes `gorm:"ForeignKey:ID"`
+	TicketTypeID  int
+	TicketOwner   User `gorm:"ForeignKey:ID"`
+	TicketOwnerID int
+	IsPaid        bool `default:"false"`
+	IsActive      bool
 }

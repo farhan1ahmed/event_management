@@ -3,7 +3,6 @@ package dataservice
 import (
 	"context"
 	"event_ticket_service/models"
-	"fmt"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"log"
@@ -103,7 +102,6 @@ func (q *Queries)ReserveTicketInDB(ctx context.Context, reqPayload models.Reserv
 			log.Println(result.Error)
 			return result.Error
 		}
-		fmt.Println("1")
 		if ticketType.RemainingQuantity >0 {
 			ticketType.ReservedQuantity  = ticketType.ReservedQuantity + 1
 			ticketType.RemainingQuantity  = ticketType.RemainingQuantity - 1
@@ -113,7 +111,6 @@ func (q *Queries)ReserveTicketInDB(ctx context.Context, reqPayload models.Reserv
 			log.Println(result.Error)
 			return result.Error
 		}
-		fmt.Println("2")
 
 		// Get event details
 		var event models.Event
@@ -123,38 +120,42 @@ func (q *Queries)ReserveTicketInDB(ctx context.Context, reqPayload models.Reserv
 			log.Println(result.Error)
 			return result.Error
 		}
-		fmt.Println(event)
 
 		// Create Ticket
 		ticketType.EventID = event.ID
 		ticket := models.Ticket{
 			TicketTypeID: ticketType.ID,
-			TicketOwnerContact: reqPayload.TicketOwnerContact,
+			TicketOwnerID: reqPayload.TicketOwnerID,
 			IsPaid: false,
 			IsActive: false,
 		}
-		fmt.Println("3")
-		fmt.Println(ticket)
+
 		result = tx.Create(&ticket)
 		if result.Error != nil{
 			log.Println(result.Error)
 			return result.Error
 		}
-		fmt.Println("4")
-		fmt.Println("5")
+
 		// Create seat reservation if seat management enabled
 		if event.IsSeatManagementRequired{
 			// Get seat
 			var seat models.Seat
 			var reservedSeat models.ReservedSeat
+			var exists bool
 			seat.ID = reqPayload.SeatID
 			reservedSeat.SeatID = reqPayload.SeatID
 			// Check if seat not reserved already
-			result = tx.First(&reservedSeat)
-			if result.Error == nil{
-				log.Println(result.Error)
-				return errors.Errorf("seat reserved already")
+			result = tx.Model(reservedSeat).
+				Select("id").
+				Where("seat_id = ?", reqPayload.SeatID).
+				Find(&exists)
+			if result.Error != nil{
+				return result.Error
 			}
+			if exists{
+				return errors.New("seat reserved already")
+			}
+
 
 			result = tx.First(&seat)
 			if result.Error != nil{

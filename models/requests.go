@@ -21,14 +21,29 @@ type CreateEvenTicket struct {
 }
 
 type CreateTicketTypes struct {
-	EventID             int    `json:"event_id"`
-	TicketType        string `json:"ticket_type"`
-	TotalLimit        int    `json:"total_limit"`
+	EventID    int    `json:"event_id"`
+	TicketType string `json:"ticket_type"`
+	TotalLimit int    `json:"total_limit"`
 }
 
 type ReserveTicket struct {
-	EventID             int    `json:"event_id"`
-	TicketTypeID        int `json:"ticket_type_id"`
-	TicketOwnerContact  string `json:"ticket_owner_contact"`
-	SeatID				int 	`json:"seat_id"`
+	EventID       int `json:"event_id"`
+	TicketTypeID  int `json:"ticket_type_id"`
+	TicketOwnerID int `json:"ticket_owner_id"`
+	SeatID        int `json:"seat_id"`
+}
+
+type AddToCart struct {
+	UserID   int `json:"user_id"`
+	TicketTypeID int `json:"ticket_type_id"`
+	Quantity int `json:"quantity"`
+}
+
+type UpdateCartItem struct {
+	CartItemID int `json:"cart_item_id"`
+	Quantity int `json:"quantity"`
+}
+
+type DeleteCartItem struct {
+	CartItemID int `json:"cart_item_id"`
 }

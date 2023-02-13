@@ -22,6 +22,14 @@ func (q *Queries)InitEventTicketModels() error{
 	if err!= nil{
 		return err
 	}
+	err = q.db.AutoMigrate(&models.Cart{})
+	if err!= nil{
+		return err
+	}
+	err = q.db.AutoMigrate(&models.User{})
+	if err!= nil{
+		return err
+	}
 	err = q.db.AutoMigrate(&models.Ticket{})
 	if err!= nil{
 		return err

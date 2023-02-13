@@ -10,6 +10,7 @@ type DatabaseMethods interface {
 	Transaction(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) (err error)
 	Model(value interface{}) (tx *gorm.DB)
 	Get(key string) (interface{}, bool)
+	Find(dest interface{}, conds ...interface{}) (tx *gorm.DB)
 }
 type Queries struct{
 	db DatabaseMethods
