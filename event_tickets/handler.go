@@ -215,12 +215,10 @@ func (server *Server) searchEngine(ctx *gin.Context) {
 	esQuery := elastic.NewMultiMatchQuery(query, "event_name", "event_description")
 		//Fuzziness("2").
 		//MinimumShouldMatch("2")
-	esult:= server.elastic.Search().
+	result, err:= server.elastic.Search().
 		Index(elasticsearch.ElasticIndexName).
 		Query(esQuery).
-		From(skip).Size(take)
-	fmt.Println(fmt.Sprintf("%v", esult))
-	result, err :=esult.Do(ctx)
+		From(skip).Size(take).Do(ctx)
 	if err != nil {
 		logger.Error(err.Error())
 		msg := "Something went wrong"
