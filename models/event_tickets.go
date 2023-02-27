@@ -6,8 +6,8 @@ type Event struct {
 	ID                       int       `gorm:"primarykey"`
 	EventType                EventType `gorm:"ForeignKey:ID"`
 	EventTypeID              int
-	EventName                string `gorm:"not null"`
-	EventDescription         string
+	EventName                string `gorm:"not null" json:"event_name"`
+	EventDescription         string `json:"event_description"`
 	EventAddress             string
 	EventLocationId          int
 	EventCategory            string

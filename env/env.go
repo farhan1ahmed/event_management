@@ -18,6 +18,7 @@ type envFile struct {
 	BuildEnv   string
 	ServerHost string
 	ServerPort string
+	ElasticURL string
 }
 
 func (env *envFile) GetServerAddress() string {
@@ -71,6 +72,10 @@ func init() {
 	if buildEnv == "" {
 		buildEnv = "dev"
 	}
+	elasticURL := os.Getenv("ELASTIC_URL")
+	if elasticURL ==""{
+		elasticURL = "http://127.0.0.1:9200"
+	}
 
 	Env = &envFile{
 		DbName:     dbName,
@@ -82,5 +87,6 @@ func init() {
 		BuildEnv:   buildEnv,
 		ServerHost: serverHost,
 		ServerPort: serverPort,
+		ElasticURL: elasticURL,
 	}
 }

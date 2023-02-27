@@ -3,15 +3,17 @@ package event_tickets
 import (
 	"event_ticket_service/dataservice"
 	"github.com/gin-gonic/gin"
+	"github.com/olivere/elastic/v7"
 	"log"
 	"net/http"
 )
 
-func CreateNewServer(dbStore dataservice.Store, router *gin.Engine, rg *gin.RouterGroup){
+func CreateNewServer(dbStore dataservice.Store, router *gin.Engine, rg *gin.RouterGroup, eCl *elastic.Client){
 	server := &Server{
 		store: dbStore,
 		router: router,
 		routerGroup: rg,
+		elastic: eCl,
 	}
 	err := server.store.InitEventTicketModels()
 	if err != nil{
@@ -24,5 +26,6 @@ func CreateNewServer(dbStore dataservice.Store, router *gin.Engine, rg *gin.Rout
 	rg.Handle(http.MethodPatch, "cart", server.updateCartItem)
 	rg.Handle(http.MethodDelete, "cart", server.deleteCartItem)
 	rg.Handle(http.MethodGet, "admin/cart", server.showCartItems)
+	rg.Handle(http.MethodGet, "search", server.searchEngine)
 }
 

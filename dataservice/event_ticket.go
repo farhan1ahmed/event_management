@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.CreateEvenTicket) error{
+func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.CreateEvenTicket) (models.Event, error){
+	var event models.Event
 	err := q.db.Transaction(func(tx *gorm.DB) error {
 		// Create event organizer
 		eventOrganizer := models.EventOrganizer{
@@ -32,7 +33,7 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 			bookingCloseTime = *reqPayload.StartTime
 		}
 		// Create event
-		event := models.Event{
+		event = models.Event{
 			EventTypeID: reqPayload.EventTypeID,
 			EventName: reqPayload.EventName,
 			EventAddress: reqPayload.EventAddress,
@@ -69,9 +70,9 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 	})
 	if err != nil{
 		log.Println(err.Error())
-		return err
+		return event, err
 	}
-	return nil
+	return event, nil
 }
 
 func (q *Queries)CreateTicketTypeInDB(ctx context.Context, reqPayload models.CreateTicketTypes) error{

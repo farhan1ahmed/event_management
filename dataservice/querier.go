@@ -7,7 +7,7 @@ import (
 
 type Querier interface{
 	InitEventTicketModels() error
-	CreateEventTicketInDB(ctx context.Context, reqPayload models.CreateEvenTicket) error
+	CreateEventTicketInDB(ctx context.Context, reqPayload models.CreateEvenTicket) (models.Event, error)
 	CreateTicketTypeInDB(ctx context.Context, reqPayload models.CreateTicketTypes) error
 	ReserveTicketInDB(ctx context.Context, reqPayload models.ReserveTicket) error
 	AddToCartInDB(ctx context.Context, reqPayload models.AddToCart) error
