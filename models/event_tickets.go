@@ -8,7 +8,7 @@ type Event struct {
 	EventTypeID              int
 	EventName                string `gorm:"not null" json:"event_name"`
 	EventDescription         string `json:"event_description"`
-	EventAddress             string
+	EventAddress             string `json:"event_address"`
 	EventLocationId          int
 	EventCategory            string
 	StartTime                *time.Time

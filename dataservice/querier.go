@@ -3,6 +3,7 @@ package dataservice
 import (
 	"context"
 	"event_ticket_service/models"
+	"github.com/olivere/elastic/v7"
 )
 
 type Querier interface{
@@ -14,6 +15,10 @@ type Querier interface{
 	UpdateCartItemInDB(ctx context.Context, reqPayload models.UpdateCartItem) error
 	DeleteCartItemFromDB(ctx context.Context, reqPayload models.DeleteCartItem) error
 	GetCartItemsFromDB(ctx context.Context) ([]models.Cart, error)
+
+	StoreEventDetailsInES(ctx context.Context, ESEvent models.ESEvent) error
+	MakeTextBasedSearchESQuery(ctx context.Context, query string, skip int, take int) (*elastic.SearchResult, error)
+	MakeLocationBasedSearchESQuery(ctx context.Context, lat float64, long float64, distance string) (*elastic.SearchResult, error)
 }
 
 var _ Querier = (*Queries)(nil)

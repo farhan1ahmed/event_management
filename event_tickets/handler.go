@@ -2,13 +2,13 @@ package event_tickets
 
 import (
 	"encoding/json"
-	"event_ticket_service/elasticsearch"
 	"event_ticket_service/models"
 	"event_ticket_service/utility"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/olivere/elastic/v7"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -32,11 +32,24 @@ func (server *Server) createEventTicket(ctx *gin.Context){
 		return
 	}
 
-	bulk := server.elastic.Bulk().Index(elasticsearch.ElasticIndexName).Type(elasticsearch.ElasticTypeName)
-	bulk.Add(elastic.NewBulkIndexRequest().Id(string(rune(event.ID))).Doc(event))
-	if _, err = bulk.Do(ctx); err != nil {
+	var ESEvent models.ESEvent
+	ESEvent.Event = event
+	lat, long, err := utility.GetLatLon(url.QueryEscape(event.EventAddress))
+	if err != nil{
 		logger.Error(err.Error())
-		msg := "Failed to create documents"
+		statusCode := http.StatusInternalServerError
+		msg := "failed to create event_ticket"
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	ESEvent.Location.Latitude = lat
+	ESEvent.Location.Longitude = long
+
+	err = server.store.StoreEventDetailsInES(ctx, ESEvent)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Failed to insert event to ES: %v", err))
+		msg := "failed to create event_ticket"
 		utility.GenerateResponse(ctx, http.StatusInternalServerError, msg, true, nil)
 		return
 	}
@@ -196,7 +209,7 @@ func (server *Server) showCartItems(ctx *gin.Context){
 
 func (server *Server) searchEngine(ctx *gin.Context) {
 	logger := utility.GetLogger()
-	logger.Info("showEngine endpoint called")
+	logger.Info("searchEngine endpoint called")
 
 	query := ctx.Query("query")
 	if query == "" {
@@ -212,22 +225,52 @@ func (server *Server) searchEngine(ctx *gin.Context) {
 	if i, err := strconv.Atoi(ctx.Query("take")); err == nil {
 		take = i
 	}
-	esQuery := elastic.NewMultiMatchQuery(query, "event_name", "event_description")
-		//Fuzziness("2").
-		//MinimumShouldMatch("2")
-	result, err:= server.elastic.Search().
-		Index(elasticsearch.ElasticIndexName).
-		Query(esQuery).
-		From(skip).Size(take).Do(ctx)
-	if err != nil {
-		logger.Error(err.Error())
-		msg := "Something went wrong"
-		utility.GenerateResponse(ctx, http.StatusInternalServerError, msg, true, nil)
+
+	searchType := ctx.Query("type")
+	var result *elastic.SearchResult
+
+	switch searchType {
+	case "text":
+		_result, err := server.store.MakeTextBasedSearchESQuery(ctx, query, skip, take)
+		if err != nil {
+			logger.Error(err.Error())
+			msg := "Something went wrong"
+			utility.GenerateResponse(ctx, http.StatusInternalServerError, msg, true, nil)
+			return
+		}
+		result = _result
+	case "location":
+		lat, long, err := utility.GetLatLon(url.QueryEscape(query))
+		if err != nil {
+			logger.Error(err.Error())
+			statusCode := http.StatusInternalServerError
+			msg := "failed to retrieve results for the search query"
+			utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+			return
+		}
+
+		distance := ctx.Query("distance")
+		if distance == ""{
+			distance = "10km"
+		}
+		_result, err := server.store.MakeLocationBasedSearchESQuery(ctx, lat, long, distance)
+
+		if err != nil {
+			logger.Error(err.Error())
+			msg := "Something went wrong"
+			utility.GenerateResponse(ctx, http.StatusInternalServerError, msg, true, nil)
+			return
+		}
+		result = _result
+	default:
+		msg := "Search type missing"
+		utility.GenerateResponse(ctx, http.StatusBadRequest, msg, true, nil)
 		return
 	}
+
 	res := models.SearchResponse{
 		Time: fmt.Sprintf("%d", result.TookInMillis),
-		Hits: fmt.Sprintf("%d", result.Hits.TotalHits),
+		Hits: fmt.Sprintf("%d", result.Hits.TotalHits.Value),
 	}
 	docs := make([]models.DocumentResponse, 0)
 	for _, hit := range result.Hits.Hits {
@@ -236,6 +279,6 @@ func (server *Server) searchEngine(ctx *gin.Context) {
 		docs = append(docs, doc)
 	}
 	res.ResultDocuments = docs
-	msg := "successfully retreived search items"
+	msg := "successfully retrieved search items"
 	utility.GenerateResponse(ctx, http.StatusOK, msg, false, res)
 }

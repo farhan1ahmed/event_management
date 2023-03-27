@@ -3,17 +3,15 @@ package event_tickets
 import (
 	"event_ticket_service/dataservice"
 	"github.com/gin-gonic/gin"
-	"github.com/olivere/elastic/v7"
 	"log"
 	"net/http"
 )
 
-func CreateNewServer(dbStore dataservice.Store, router *gin.Engine, rg *gin.RouterGroup, eCl *elastic.Client){
+func CreateNewServer(dbStore dataservice.Store, router *gin.Engine, rg *gin.RouterGroup){
 	server := &Server{
 		store: dbStore,
 		router: router,
 		routerGroup: rg,
-		elastic: eCl,
 	}
 	err := server.store.InitEventTicketModels()
 	if err != nil{

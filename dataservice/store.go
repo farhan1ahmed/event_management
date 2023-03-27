@@ -1,6 +1,9 @@
 package dataservice
 
-import "gorm.io/gorm"
+import (
+	"github.com/olivere/elastic/v7"
+	"gorm.io/gorm"
+)
 
 type Store interface{
 	Querier
@@ -8,12 +11,14 @@ type Store interface{
 
 type PGStore struct{
 	Db *gorm.DB
+	Es *elastic.Client
 	*Queries
 }
 
-func NewStore(db *gorm.DB) Store{
+func NewStore(db *gorm.DB, es *elastic.Client ) Store{
 	return &PGStore{
 		Db: db,
-		Queries: NewQueries(db),
+		Es: es,
+		Queries: NewQueries(db, es),
 	}
 }

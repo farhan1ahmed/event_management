@@ -20,9 +20,9 @@ func main() {
 	r := gin.Default()
 	rg := r.Group("api/v1/")
 
-	dbStore := dataservice.NewStore(db)
+	dbStore := dataservice.NewStore(db, elasticClient)
 
-	event_tickets.CreateNewServer(dbStore, r, rg, elasticClient)
+	event_tickets.CreateNewServer(dbStore, r, rg)
 
 	err := r.Run(env.Env.GetServerAddress())
 	if err != nil {

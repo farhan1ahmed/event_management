@@ -74,7 +74,7 @@ func init() {
 	}
 	elasticURL := os.Getenv("ELASTIC_URL")
 	if elasticURL ==""{
-		elasticURL = "http://127.0.0.1:9200"
+		elasticURL = "http://0.0.0.0:9200"
 	}
 
 	Env = &envFile{
