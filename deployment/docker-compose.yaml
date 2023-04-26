@@ -1,5 +1,15 @@
 version: "3.0"
 services:
+  postgresdb:
+    image: postgres:14.1-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgresdb:/var/lib/postgresql/data
+
   elasticsearch:
     container_name: es-container
     image: elasticsearch:8.6.2
@@ -17,3 +27,7 @@ services:
       - elasticsearch
     ports:
       - 5601:5601
+
+volumes:
+  postgresdb:
+    driver: local

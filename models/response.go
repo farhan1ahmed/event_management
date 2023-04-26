@@ -10,3 +10,8 @@ type CartItems struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
+
+type NotificationResponse struct {
+	Status string `gorm:"status" json:"status"`
+	Notification
+}

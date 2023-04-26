@@ -12,6 +12,7 @@ type DatabaseMethods interface {
 	Model(value interface{}) (tx *gorm.DB)
 	Get(key string) (interface{}, bool)
 	Find(dest interface{}, conds ...interface{}) (tx *gorm.DB)
+	First(dest interface{}, conds ...interface{}) (tx *gorm.DB)
 }
 type ElasticSearchMethods interface {
 	Index() *elastic.IndexService

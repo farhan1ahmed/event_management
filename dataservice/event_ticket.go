@@ -3,13 +3,14 @@ package dataservice
 import (
 	"context"
 	"event_ticket_service/models"
+	"fmt"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"log"
 	"time"
 )
 
-func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.CreateEvenTicket) (models.Event, error){
+func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.CreateEventTicket) (models.Event, error){
 	var event models.Event
 	err := q.db.Transaction(func(tx *gorm.DB) error {
 		// Create event organizer
@@ -18,10 +19,13 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 			OrganizerAddress: reqPayload.OrganizerAddress,
 			OrganizerContact: reqPayload.OrganizerContact,
 		}
-		result := tx.Model(&eventOrganizer).Create(&eventOrganizer)
-		if result.Error != nil{
-			log.Println(result.Error)
-			return result.Error
+		result := tx.Model(&eventOrganizer).First(&eventOrganizer, "organizer_name = ?", eventOrganizer.OrganizerName)
+		if eventOrganizer.ID == 0 {
+			result = tx.Model(&eventOrganizer).Create(&eventOrganizer)
+			if result.Error != nil {
+				log.Println(result.Error)
+				return result.Error
+			}
 		}
 
 		// set bookingClose time to time specified in request body
@@ -66,6 +70,39 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 			return result.Error
 		}
 
+		// Get EventOrganizer Followers
+		var eventOrgFollowers []models.EventOrganizerFollowers
+		result = q.db.Find(&eventOrgFollowers, "event_organizer_id = ?", eventOrganizer.ID)
+		if result.Error != nil {
+			log.Println(result.Error)
+			return result.Error
+		}
+
+		if len(eventOrgFollowers) != 0 {
+			//capture events for event_organizer_notification table
+			var notificationMessage string
+			notificationMessage = fmt.Sprintf("Event organizer %s published a new event %s", eventOrganizer.OrganizerName, event.EventName)
+
+			var ntfn models.Notification
+			ntfn.Updates = notificationMessage
+			result = q.db.Model(&ntfn).Create(&ntfn)
+			if result.Error != nil {
+				log.Println(result.Error)
+				return result.Error
+			}
+
+			for _, follower := range eventOrgFollowers {
+				var eventNtfn models.EventOrganizerNotifications
+				eventNtfn.EventOrganizerID = eventOrganizer.ID
+				eventNtfn.UserID = follower.UserID
+				eventNtfn.NotificationID = ntfn.ID
+				result = q.db.Model(&eventNtfn).Create(&eventNtfn)
+				if result.Error != nil {
+					log.Println(result.Error)
+					return result.Error
+				}
+				}
+		}
 		return nil
 	})
 	if err != nil{
@@ -73,6 +110,86 @@ func (q *Queries)CreateEventTicketInDB(ctx context.Context, reqPayload models.Cr
 		return event, err
 	}
 	return event, nil
+}
+
+func (q *Queries)UpdateEventTicketInDB(ctx context.Context, reqPayload models.UpdateEventTicket) (models.Event, error){
+	var updatedEventDetails models.Event
+	err := q.db.Transaction(func(tx *gorm.DB) error {
+		var oldEventDetails models.Event
+		updatedEventDetails = models.Event{
+			ID:               reqPayload.EventID,
+			EventName:        reqPayload.EventName,
+			EventAddress:     reqPayload.EventAddress,
+			EventDescription: reqPayload.EventDescription,
+			StartTime:        reqPayload.StartTime,
+			EndTime:          reqPayload.EndTime,
+		}
+
+		result := q.db.First(&oldEventDetails, reqPayload.EventID)
+		if result.Error != nil {
+			log.Println(result.Error)
+			return result.Error
+		}
+		result = q.db.Model(&updatedEventDetails).Updates(&updatedEventDetails)
+		if result.Error != nil {
+			log.Println(result.Error)
+			return result.Error
+		}
+		// Get Event Followers
+		var eventFollowers []models.EventFollowers
+		result = q.db.Find(&eventFollowers, "event_id = ?", reqPayload.EventID)
+		if result.Error != nil {
+			log.Println(result.Error)
+			return result.Error
+		}
+
+		if len(eventFollowers) != 0 {
+			//capture change in event_changes_notification table
+			var notifications []string
+			var notificationMessage string
+			if oldEventDetails.EventName != updatedEventDetails.EventName {
+				notificationMessage = fmt.Sprintf("Name for %s event has been updated to %s. ", oldEventDetails.EventName, updatedEventDetails.EventName)
+				notifications = append(notifications, notificationMessage)
+			}
+			if oldEventDetails.EventAddress != updatedEventDetails.EventAddress {
+				notificationMessage = fmt.Sprintf("Address for %s event has been updated to %s. ", oldEventDetails.EventName, updatedEventDetails.EventAddress)
+				notifications = append(notifications, notificationMessage)
+			}
+
+			if oldEventDetails.EventDescription != updatedEventDetails.EventDescription {
+				notificationMessage = fmt.Sprintf("Description for %s event has been updated to %s. ", oldEventDetails.EventName, updatedEventDetails.EventDescription)
+				notifications = append(notifications, notificationMessage)
+			}
+
+			for _, message := range notifications {
+				var ntfn models.Notification
+				ntfn.Updates = message
+				result = q.db.Model(&ntfn).Create(&ntfn)
+				if result.Error != nil {
+					log.Println(result.Error)
+					return result.Error
+				}
+
+				for _, follower := range eventFollowers {
+					var eventNtfn models.EventChangesNotifications
+					eventNtfn.EventID = reqPayload.EventID
+					eventNtfn.UserID = follower.UserID
+					eventNtfn.NotificationID = ntfn.ID
+					result = q.db.Model(&eventNtfn).Create(&eventNtfn)
+					if result.Error != nil {
+						log.Println(result.Error)
+						return result.Error
+					}
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil{
+		log.Println(err.Error())
+		return updatedEventDetails, err
+	}
+	return updatedEventDetails, nil
 }
 
 func (q *Queries)CreateTicketTypeInDB(ctx context.Context, reqPayload models.CreateTicketTypes) error{

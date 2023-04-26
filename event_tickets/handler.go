@@ -16,7 +16,7 @@ func (server *Server) createEventTicket(ctx *gin.Context){
 	logger := utility.GetLogger()
 	logger.Info("createEventTicket endpoint called")
 
-	var reqPayload models.CreateEvenTicket
+	var reqPayload models.CreateEventTicket
 	if err := ctx.ShouldBindJSON(&reqPayload); err != nil {
 		logger.Error(err.Error())
 		utility.GenerateResponse(ctx, http.StatusBadRequest, err.Error(), true, nil)
@@ -56,6 +56,30 @@ func (server *Server) createEventTicket(ctx *gin.Context){
 
 	msg := "event created successfully"
 	utility.GenerateResponse(ctx, http.StatusOK, msg, false, nil)
+}
+
+func (server *Server) updateEventTicket(ctx *gin.Context){
+	logger := utility.GetLogger()
+	logger.Info("updateEventTicket endpoint called")
+
+	var reqPayload models.UpdateEventTicket
+	if err := ctx.ShouldBindJSON(&reqPayload); err != nil {
+		logger.Error(err.Error())
+		utility.GenerateResponse(ctx, http.StatusBadRequest, err.Error(), true, nil)
+		return
+	}
+
+	event, err := server.store.UpdateEventTicketInDB(ctx, reqPayload)
+	if err != nil{
+		logger.Error(err.Error())
+		statusCode := http.StatusInternalServerError
+		msg := "failed to update event_ticket"
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	msg := "event updated successfully"
+	utility.GenerateResponse(ctx, http.StatusOK, msg, false, event)
 }
 
 func (server *Server) createTicketTypes(ctx *gin.Context){
@@ -281,4 +305,124 @@ func (server *Server) searchEngine(ctx *gin.Context) {
 	res.ResultDocuments = docs
 	msg := "successfully retrieved search items"
 	utility.GenerateResponse(ctx, http.StatusOK, msg, false, res)
+}
+
+
+func (server *Server) eventUpdateNotifications(ctx *gin.Context){
+	logger := utility.GetLogger()
+	logger.Info("eventUpdateNotifications endpoint called")
+
+	// We will read userID from context set in middleware once integration is done with Auth module
+	// userId := getUserIdFromContext
+	userIDstr := ctx.Param("user_id")
+	userID, err := strconv.Atoi(userIDstr)
+	if err != nil{
+		statusCode := http.StatusBadRequest
+		msg := "failed to parse userID"
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	notifications, err := server.store.GetEventUpdateNotificationsFromDB(ctx, userID)
+	if err != nil{
+		logger.Error(err.Error())
+		statusCode := http.StatusInternalServerError
+		msg := "failed to get event changes notifications"
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	var notificationAlert models.NotificationResponse
+	notificationResponse := make([]models.NotificationResponse, 0)
+	for _, item := range notifications{
+		notificationAlert.ID = item.NotificationID
+		notificationAlert.Updates = item.Notification.Updates
+		notificationAlert.Status = item.Status
+		notificationResponse = append(notificationResponse, notificationAlert)
+	}
+	msg := "notifications for user."
+	utility.GenerateResponse(ctx, http.StatusOK, msg, false, notificationResponse)
+}
+func (server *Server) eventOrganizerNotifications(ctx *gin.Context){
+	logger := utility.GetLogger()
+	logger.Info("eventUpdateNotifications endpoint called")
+
+	// We will read userID from context set in middleware once integration is done with Auth module
+	// userId := getUserIdFromContext
+	userIDstr := ctx.Param("user_id")
+	userID, err := strconv.Atoi(userIDstr)
+	if err != nil{
+		statusCode := http.StatusBadRequest
+		msg := "failed to parse userID"
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	notifications, err := server.store.GetEventOrganizerNotificationsFromDB(ctx, userID)
+	if err != nil{
+		logger.Error(err.Error())
+		statusCode := http.StatusInternalServerError
+		msg := "failed to get event organizer notifications"
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	var notificationAlert models.NotificationResponse
+	notificationResponse := make([]models.NotificationResponse, 0)
+	for _, item := range notifications{
+		notificationAlert.ID = item.NotificationID
+		notificationAlert.Updates = item.Notification.Updates
+		notificationAlert.Status = item.Status
+		notificationResponse = append(notificationResponse, notificationAlert)
+	}
+	msg := "notifications for user."
+	utility.GenerateResponse(ctx, http.StatusOK, msg, false, notificationResponse)
+}
+
+func (server *Server) followEvent(ctx *gin.Context) {
+	logger := utility.GetLogger()
+	logger.Info("followEvent endpoint called")
+
+	var reqPayload models.FollowEvent
+	if err := ctx.ShouldBindJSON(&reqPayload); err != nil {
+		logger.Error(err.Error())
+		utility.GenerateResponse(ctx, http.StatusBadRequest, err.Error(), true, nil)
+		return
+	}
+
+	err := server.store.FollowEventForUser(ctx, reqPayload)
+	if err != nil{
+		logger.Error(err.Error())
+		statusCode := http.StatusInternalServerError
+		msg := "failed to follow event for the provided user."
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	msg := "successfully followed event for the provided user."
+	utility.GenerateResponse(ctx, http.StatusOK, msg, false, nil)
+}
+
+func (server *Server) followEventOrganizer(ctx *gin.Context) {
+	logger := utility.GetLogger()
+	logger.Info("followEvent endpoint called")
+
+	var reqPayload models.FollowEventOrganizer
+	if err := ctx.ShouldBindJSON(&reqPayload); err != nil {
+		logger.Error(err.Error())
+		utility.GenerateResponse(ctx, http.StatusBadRequest, err.Error(), true, nil)
+		return
+	}
+
+	err := server.store.FollowEventOrganizerForUser(ctx, reqPayload)
+	if err != nil{
+		logger.Error(err.Error())
+		statusCode := http.StatusInternalServerError
+		msg := "failed to follow event organizer for the provided user."
+		utility.GenerateResponse(ctx, statusCode, msg, true, nil)
+		return
+	}
+
+	msg := "successfully followed event organizer for the provided user."
+	utility.GenerateResponse(ctx, http.StatusOK, msg, false, nil)
 }

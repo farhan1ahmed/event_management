@@ -43,6 +43,27 @@ func (q *Queries)InitEventTicketModels() error{
 		return err
 	}
 
+	err = q.db.AutoMigrate(&models.Notification{})
+	if err!= nil{
+		return err
+	}
+	err = q.db.AutoMigrate(&models.EventChangesNotifications{})
+	if err!= nil{
+		return err
+	}
+	err = q.db.AutoMigrate(&models.EventOrganizerNotifications{})
+	if err!= nil{
+		return err
+	}
+	err = q.db.AutoMigrate(&models.EventFollowers{})
+	if err!= nil{
+		return err
+	}
+	err = q.db.AutoMigrate(&models.EventOrganizerFollowers{})
+	if err!= nil{
+		return err
+	}
+
 	var eventTypes []models.EventType
 	eventTypes = []models.EventType{
 		{1, "physical"},{2, "online"},{3, "hybrid"},
